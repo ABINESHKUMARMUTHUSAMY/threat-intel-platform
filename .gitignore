@@ -216,3 +216,27 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Models and data (use S3 / Git LFS instead)
+ml/models/*.pkl
+ml/models/*.onnx
+*.pcap
+*.pcapng
+data/
+
+# Environment
+.env
+.env.local
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Frontend
+node_modules/
+dist/
+.next/
+
+# Logs
+*.log
+logs/
