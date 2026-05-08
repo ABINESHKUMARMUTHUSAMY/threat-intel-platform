@@ -240,3 +240,4 @@ dist/
 # Logs
 *.log
 logs/
+infra/instance-details.md
