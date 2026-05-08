@@ -241,3 +241,4 @@ dist/
 *.log
 logs/
 infra/instance-details.md
+.DS_Store
