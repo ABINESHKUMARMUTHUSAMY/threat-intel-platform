@@ -1,6 +1,30 @@
 name: threat-intel
 
 services:
+  api:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
+    container_name: threat-intel-api
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-threat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-threat_intel}
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../services/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - threat-intel-net
   postgres:
     image: timescale/timescaledb:latest-pg16
     container_name: threat-intel-postgres
