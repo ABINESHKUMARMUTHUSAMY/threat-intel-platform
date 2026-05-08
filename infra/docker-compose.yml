@@ -1,0 +1,48 @@
+name: threat-intel
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: threat-intel-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-threat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-threat_intel}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-threat} -d ${POSTGRES_DB:-threat_intel}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - threat-intel-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: threat-intel-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - threat-intel-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  threat-intel-net:
+    driver: bridge
