@@ -1,6 +1,28 @@
 name: threat-intel
 
 services:
+  capture:
+    build:
+      context: ../services/capture
+      dockerfile: Dockerfile
+    container_name: threat-intel-capture
+    restart: unless-stopped
+    # Host networking — required so the container sees host interfaces
+    network_mode: host
+    # Specific capabilities for packet capture. NOT --privileged.
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      CAPTURE_INTERFACE: ens5
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      STREAM_NAME: packets:raw
+      STREAM_MAXLEN: 100000
+      STATS_INTERVAL: 10
+    depends_on:
+      redis:
+        condition: service_healthy
   api:
     build:
       context: ../services/api

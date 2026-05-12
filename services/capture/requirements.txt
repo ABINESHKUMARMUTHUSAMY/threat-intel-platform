@@ -1,0 +1,4 @@
+scapy==2.6.1
+redis==5.2.0
+pydantic==2.10.3
+python-json-logger==3.2.1
