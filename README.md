@@ -27,6 +27,15 @@ _Coming Day 7_
 ## Evaluation
 
 _Coming Day 7 — see [docs/eval-report.md](docs/eval-report.md)_
+## Progress
+
+- [x] **Day 1** — AWS infra, IAM, Postgres + Redis + FastAPI scaffold ([v0.1-day1-foundation](../../releases/tag/v0.1-day1-foundation))
+- [ ] Day 2 — Scapy capture, flow aggregation, React frontend
+- [ ] Day 3 — ML detection (XGBoost on CICIDS2017)
+- [ ] Day 4 — Automated response (host isolation, IP blocking)
+- [ ] Day 5 — YARA auto-generation
+- [ ] Day 6 — Topology mapper, dashboard, polish
+- [ ] Day 7 — Validation, demo video, final docs
 
 ## License
 
