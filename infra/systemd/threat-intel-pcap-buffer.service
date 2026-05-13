@@ -1,0 +1,15 @@
+[Unit]
+Description=Threat Intel Platform - Rolling pcap buffer
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/tcpdump -i ens5 -G 60 -W 5 -w /var/threat-intel/pcaps/sensor-%%Y%%m%%d-%%H%%M%%S.pcap "ip and not (tcp port 22 or tcp port 5432 or tcp port 6379 or tcp port 8000 or tcp port 5173)"
+Restart=on-failure
+RestartSec=5
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
