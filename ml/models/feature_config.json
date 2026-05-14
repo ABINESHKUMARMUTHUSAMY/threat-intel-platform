@@ -1,0 +1,54 @@
+{
+  "drop_features": [
+    "Destination Port",
+    "Source Port",
+    "Flow ID",
+    "Source IP",
+    "Destination IP",
+    "Timestamp",
+    "Bwd PSH Flags",
+    "Bwd URG Flags",
+    "Fwd Avg Bytes/Bulk",
+    "Fwd Avg Packets/Bulk",
+    "Fwd Avg Bulk Rate",
+    "Bwd Avg Bytes/Bulk",
+    "Bwd Avg Packets/Bulk",
+    "Bwd Avg Bulk Rate",
+    "Fwd URG Flags",
+    "RST Flag Count",
+    "CWE Flag Count",
+    "ECE Flag Count"
+  ],
+  "label_map": {
+    "BENIGN": "BENIGN",
+    "PortScan": "PortScan",
+    "DoS Hulk": "DoS",
+    "DoS GoldenEye": "DoS",
+    "DoS slowloris": "DoS",
+    "DoS Slowhttptest": "DoS",
+    "DDoS": "DoS",
+    "SSH-Patator": "Bruteforce",
+    "FTP-Patator": "Bruteforce",
+    "Bot": "Botnet",
+    "Web Attack \ufffd Brute Force": "WebAttack",
+    "Web Attack \ufffd XSS": "WebAttack",
+    "Web Attack \ufffd Sql Injection": "WebAttack",
+    "Infiltration": "Infiltration",
+    "Heartbleed": "Infiltration"
+  },
+  "production_labels": [
+    "BENIGN",
+    "Botnet",
+    "Bruteforce",
+    "DoS",
+    "Infiltration",
+    "PortScan",
+    "WebAttack"
+  ],
+  "rationale": {
+    "destination_port": "Encodes attack target (port 22 = SSH-Patator, port 80 = web attack). Model would memorize researcher choices, not learn attack behavior.",
+    "source_port": "Also dataset-specific. Real attacks use varied source ports.",
+    "identifiers": "Flow ID, IPs, Timestamps are identifiers, not behavior.",
+    "constant_features": "Zero variance contributes no information; drops noise without info loss."
+  }
+}
