@@ -1,6 +1,35 @@
 name: threat-intel
 
 services:
+  detection:
+    build:
+      context: ../services/detection
+      dockerfile: Dockerfile
+    container_name: threat-intel-detection
+    restart: unless-stopped
+    environment:
+      MODELS_DIR: /app/models
+      POLL_INTERVAL_S: 2
+      BATCH_SIZE: 500
+      DETECTION_THRESHOLD: 0.5
+      DEDUPE_WINDOW_MIN: 5
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-threat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-threat_intel}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      # Mount the model artifacts read-only
+      - ../ml/models:/app/models:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - threat-intel-net
   flow-aggregator:
     build:
       context: ../services/flow-aggregator
