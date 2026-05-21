@@ -221,7 +221,11 @@ ml/models/*.pkl
 ml/models/*.onnx
 *.pcap
 *.pcapng
-data/
+# Ignore large data files but keep configs and scripts
+ml/data/*.csv
+ml/data/*.parquet
+ml/data/*.zip
+ml/data/*.log
 
 # Environment
 .env
