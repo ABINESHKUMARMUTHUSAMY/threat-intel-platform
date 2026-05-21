@@ -1,0 +1,32 @@
+{
+  "test_macro_precision": 1.0,
+  "test_macro_recall": 1.0,
+  "test_macro_f1": 1.0,
+  "test_accuracy": 1.0,
+  "per_class": {
+    "BENIGN": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 13
+    },
+    "Bruteforce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 16
+    },
+    "DoS": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 101
+    },
+    "PortScan": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 15
+    }
+  }
+}

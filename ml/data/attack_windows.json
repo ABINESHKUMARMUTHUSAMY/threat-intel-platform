@@ -1,0 +1,56 @@
+{
+  "windows": [
+    {
+      "label": "BENIGN",
+      "start_ts": "2026-05-21T04:12:19.475571+00:00",
+      "end_ts": "2026-05-21T04:14:24.476333+00:00",
+      "label_until_ts": "2026-05-21T04:15:54.476333+00:00",
+      "command": "/home/ubuntu/attack-scripts/benign-traffic.sh 10.20.9.39 120"
+    },
+    {
+      "label": "PortScan",
+      "start_ts": "2026-05-21T04:15:54.476666+00:00",
+      "end_ts": "2026-05-21T04:16:29.477485+00:00",
+      "label_until_ts": "2026-05-21T04:17:59.477485+00:00",
+      "command": "/home/ubuntu/attack-scripts/port-scan.sh 10.20.9.39 syn"
+    },
+    {
+      "label": "BENIGN",
+      "start_ts": "2026-05-21T04:17:59.477739+00:00",
+      "end_ts": "2026-05-21T04:19:34.478538+00:00",
+      "label_until_ts": "2026-05-21T04:21:04.478538+00:00",
+      "command": "/home/ubuntu/attack-scripts/benign-traffic.sh 10.20.9.39 90"
+    },
+    {
+      "label": "Bruteforce",
+      "start_ts": "2026-05-21T04:21:04.478787+00:00",
+      "end_ts": "2026-05-21T04:21:39.479531+00:00",
+      "label_until_ts": "2026-05-21T04:23:09.479531+00:00",
+      "command": "/home/ubuntu/attack-scripts/ssh-bruteforce.sh 10.20.9.39"
+    },
+    {
+      "label": "BENIGN",
+      "start_ts": "2026-05-21T04:23:09.479756+00:00",
+      "end_ts": "2026-05-21T04:24:44.480577+00:00",
+      "label_until_ts": "2026-05-21T04:26:14.480577+00:00",
+      "command": "/home/ubuntu/attack-scripts/benign-traffic.sh 10.20.9.39 90"
+    },
+    {
+      "label": "DoS",
+      "start_ts": "2026-05-21T04:26:14.480811+00:00",
+      "end_ts": "2026-05-21T04:27:19.481570+00:00",
+      "label_until_ts": "2026-05-21T04:28:49.481570+00:00",
+      "command": "/home/ubuntu/attack-scripts/syn-flood.sh 10.20.9.39 80 60"
+    },
+    {
+      "label": "BENIGN",
+      "start_ts": "2026-05-21T04:28:49.481802+00:00",
+      "end_ts": "2026-05-21T04:30:24.482544+00:00",
+      "label_until_ts": "2026-05-21T04:31:54.482544+00:00",
+      "command": "/home/ubuntu/attack-scripts/benign-traffic.sh 10.20.9.39 90"
+    }
+  ],
+  "collected_at": "2026-05-21T04:31:54.483036+00:00",
+  "attacker_ip": "10.20.7.205",
+  "sensor_ip": "10.20.9.39"
+}
