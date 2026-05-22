@@ -64,6 +64,7 @@ async def list_alerts(
 @router.get("/{alert_id}")
 async def get_alert(alert_id: str):
     """Get full alert details including raw features."""
+    import json  # add this if json isn't already imported at the top
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -87,7 +88,9 @@ async def get_alert(alert_id: str):
             d["src_ip"] = d["src_ip"].split("/")[0]
         if d["dst_ip"]:
             d["dst_ip"] = d["dst_ip"].split("/")[0]
-        # raw_features is JSONB — asyncpg returns it as dict already
+        # asyncpg returns JSONB as a string; parse it before returning
+        if isinstance(d.get("raw_features"), str):
+            d["raw_features"] = json.loads(d["raw_features"])
         return d
 
 

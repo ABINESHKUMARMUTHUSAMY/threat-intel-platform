@@ -35,7 +35,9 @@ export default function AlertDetailModal({ alertId, onClose }) {
 }
 
 function AlertDetails({ alert }) {
-  const raw = alert.raw_features || {}
+  const raw = typeof alert.raw_features === 'string'
+ 	 ? JSON.parse(alert.raw_features)
+ 	 : (alert.raw_features || {})
   const probs = raw.xgb_all_proba || {}
   const sortedProbs = Object.entries(probs).sort((a, b) => b[1] - a[1])
 
