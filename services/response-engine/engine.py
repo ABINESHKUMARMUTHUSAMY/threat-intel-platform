@@ -23,6 +23,7 @@ from playbooks.logger_playbook import LoggerPlaybook
 from playbooks.noop_playbook import NoopPlaybook
 from playbooks.blocklist_playbook import BlocklistPlaybook   # ← NEW
 from expiry_worker import expiry_loop  
+from playbooks.isolation_playbook import IsolationPlaybook
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -283,7 +284,9 @@ async def handle_alert(pool, alert: dict):
         if playbook.applies_to(ctx):
             stats["playbooks_run"] += 1
             await run_playbook(pool, playbook, ctx)
-
+        else:
+            log.debug(f"[{playbook.name}] does not apply to alert {ctx.alert_id[:8]} "
+                      f"(attack={ctx.attack_type}, dst={ctx.dst_ip})")
 
 async def stream_consumer_loop(pool, redis_client, shutdown_event):
     """Long-running loop: XREADGROUP with block, dispatch to handlers."""
@@ -350,7 +353,7 @@ async def main():
     PLAYBOOK_REGISTRY.extend([
         LoggerPlaybook(),
         BlocklistPlaybook(pool=pool),
-        NoopPlaybook(),
+        IsolationPlaybook(),
     ])
     log.info(f"playbooks loaded: {[p.name for p in PLAYBOOK_REGISTRY]}")
 

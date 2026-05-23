@@ -27,6 +27,9 @@ services:
       LOG_LEVEL: INFO
       DRY_RUN: "false"          # ← NEW: when "true", iptables commands are logged but not run
       BLOCK_TTL_MINUTES: 60     # ← NEW: how long blocks last by default
+      AWS_REGION: us-east-1
+      QUARANTINE_SG_ID: sg-0f0f8fffc1b5dccb6
+      SENSOR_INSTANCE_ID: i-07ee08624801fa1fb
     depends_on:
       postgres:
         condition: service_healthy
