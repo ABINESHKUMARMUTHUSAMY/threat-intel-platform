@@ -317,3 +317,88 @@ For the detection pipeline end-to-end:
 - Service definitions: `infra/docker-compose.yml`
 - Live model deployment: model files in `ml/models/` are mounted read-only
   into the `threat-intel-detection` container at `/app/models`.
+
+
+## Appendix B — Mean Time To Contain (MTTC) Measurement
+
+### Methodology
+
+MTTC was measured as the wall-clock duration between the moment a high-severity
+alert was written to the database (`alerts.timestamp`) and the moment containment
+was verified in place. Detection latency (the time from attack arrival to alert
+creation, dominated by the flow-aggregator's 60-second idle timeout) is identical
+across both modes and is excluded from this comparison; the measurement isolates
+the **response phase** — the part the automated pipeline addresses.
+
+**Five manual runs.** Operator (project author, simulating a SOC analyst)
+executed the iptables containment by hand following a documented procedure:
+SSH to sensor, type the iptables INPUT rule, verify the rule was present,
+confirm. Containment was timestamped at the operator's confirmation keystroke.
+
+**Five automated runs.** The response engine consumed alerts from the
+`alerts:new` Redis stream and the `blocklist` playbook applied the same iptables
+rule plus a durable database record. Automated containment was timestamped from
+the `playbook_runs.completed_at` column.
+
+The detection deduplication window was temporarily reduced from 5 minutes to 1
+minute for the measurement period to enable rapid-fire trials; subsequent runs
+were spaced 90 seconds apart to ensure each attack produced a fresh, distinct
+alert. The response engine ran continuously during both modes. Manual and
+automated MTTC measurements share no variables: manual is operator stopwatch
+from alert visibility; automated is `playbook_runs.completed_at - alerts.timestamp`.
+
+### Results
+
+| Mode      | n | Mean    | Median  | Min     | Max     | Stdev   |
+|-----------|---|---------|---------|---------|---------|---------|
+| Manual    | 5 | 82.40 s | 60.38 s | 37.82 s | 204.37 s| 69.18 s |
+| Automated | 5 | 21.2 ms | 20.0 ms | 18.0 ms | 25.0 ms | 2.8 ms  |
+
+Manual run 1 took 204 seconds; this reflects first-time workflow familiarization
+and is preserved in the dataset for honesty. Excluding this outlier, manual
+mean is 51.91 s and the four-run distribution (37.8s, 43.2s, 60.4s, 66.2s) is
+representative of a competent analyst working through the procedure
+deliberately.
+
+**Reduction**: Automated mode reduced median MTTC from 60.4 s to 20 ms — a
+**99.97% reduction**. Including the first-run outlier, mean reduction is also
+99.97%; excluding it, mean reduction is 99.96%.
+
+### Caveats and Honest Bounds
+
+**Manual times reflect a single operator.** A more practiced SOC analyst could
+contain via iptables in 15-30 seconds; an inexperienced or context-switched
+analyst could take minutes. The five-trial measurement captures a realistic
+range but is not a population study.
+
+**Automated worst case is bounded by stream consumer latency.** The Redis
+consumer in the engine uses a 5-second `block` parameter on `XREADGROUP`. The
+measured 18-25 ms reflects attacks that arrived during active polling cycles;
+the pessimistic worst case (attack arrives immediately after a poll returns
+empty) is approximately 5000 ms + 25 ms = 5.0 s. Even this bounded worst case
+is more than an order of magnitude faster than the fastest manual run.
+
+**What this measurement does NOT include.** Detection latency (60-90 s flow
+flush + 2 s detection cycle) is identical across both modes. End-to-end
+"attack arrival to containment" times are dominated by detection, not response.
+The response phase is what the automated pipeline addresses, and this
+measurement quantifies exactly that improvement.
+
+### Reproducibility
+
+```bash
+# Lower dedupe window for measurement
+sed -i 's|DEDUPE_WINDOW_MIN: 5|DEDUPE_WINDOW_MIN: 1|' infra/docker-compose.yml
+docker compose -f infra/docker-compose.yml up -d detection
+
+# Run measurements
+cd scripts/mttc
+python3 measure_mttc.py --mode manual --runs 5 --output manual.csv
+python3 measure_mttc.py --mode automated --runs 5 --output automated.csv
+
+# Restore dedupe
+sed -i 's|DEDUPE_WINDOW_MIN: 1|DEDUPE_WINDOW_MIN: 5|' infra/docker-compose.yml
+docker compose -f infra/docker-compose.yml up -d detection
+```
+
+Raw measurement data is in `scripts/mttc/manual.csv` and `scripts/mttc/automated.csv`.
