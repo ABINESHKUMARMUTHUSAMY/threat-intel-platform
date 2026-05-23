@@ -1,6 +1,38 @@
 name: threat-intel
 
 services:
+  response-engine:
+    build:
+      context: ../services/response-engine
+      dockerfile: Dockerfile
+    container_name: threat-intel-response-engine
+    restart: unless-stopped
+    network_mode: host          # ← NEW: needed to manipulate host iptables
+    cap_add:                    # ← NEW: needed for iptables/NET_ADMIN
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      REDIS_HOST: localhost     # ← CHANGED: host network, so localhost
+      REDIS_PORT: 6379
+      STREAM_NAME: alerts:new
+      CONSUMER_GROUP: response-engine
+      CONSUMER_NAME: engine-1
+      POSTGRES_HOST: localhost  # ← CHANGED: host network, so localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-threat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-threat_intel}
+      TRIGGER_SEVERITIES: high,critical
+      OPERATOR_ALLOWLIST: 195.252.220.178
+      LOG_LEVEL: INFO
+      DRY_RUN: "false"          # ← NEW: when "true", iptables commands are logged but not run
+      BLOCK_TTL_MINUTES: 60     # ← NEW: how long blocks last by default
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy 
+
   detection:
     build:
       context: ../services/detection
