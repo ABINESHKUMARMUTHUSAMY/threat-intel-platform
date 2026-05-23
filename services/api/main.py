@@ -36,6 +36,11 @@ app.include_router(assets.router, prefix="/assets", tags=["assets"])
 app.include_router(blocklist.router, prefix="/blocklist", tags=["blocklist"])
 app.include_router(yara.router, prefix="/rules/yara", tags=["yara"])
 
+from routes.blocklist import router as blocklist_router
+from routes.playbook_runs import router as playbook_runs_router
+
+app.include_router(blocklist_router, prefix="/blocklist", tags=["blocklist"])
+app.include_router(playbook_runs_router, prefix="/playbook-runs", tags=["playbook-runs"])
 
 @app.get("/")
 async def root():

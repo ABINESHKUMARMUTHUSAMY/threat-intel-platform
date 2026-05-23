@@ -6,6 +6,7 @@ import Alerts from '@/pages/Alerts'
 import Flows from '@/pages/Flows'
 import Topology from '@/pages/Topology'
 import Blocklist from '@/pages/Blocklist'
+import PlaybookRuns from '@/pages/PlaybookRuns'
 import Yara from '@/pages/Yara'
 
 const queryClient = new QueryClient({
@@ -28,8 +29,9 @@ export default function App() {
             <Route path="alerts" element={<Alerts />} />
             <Route path="flows" element={<Flows />} />
             <Route path="topology" element={<Topology />} />
-            <Route path="blocklist" element={<Blocklist />} />
             <Route path="yara" element={<Yara />} />
+            <Route path="/blocklist" element={<Blocklist />} />
+            <Route path="/playbook-runs" element={<PlaybookRuns />} />
           </Route>
         </Routes>
       </BrowserRouter>

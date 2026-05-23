@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Activity, AlertTriangle, Network, ShieldCheck, Ban, FileCode } from 'lucide-react'
+import { Activity, AlertTriangle, Network, ShieldCheck, Ban, FileCode, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/topology', label: 'Topology', icon: ShieldCheck },
   { to: '/blocklist', label: 'Blocklist', icon: Ban },
   { to: '/yara', label: 'YARA Rules', icon: FileCode },
+  { to: '/playbook-runs', label: 'Playbook runs', icon: Play },
 ]
 
 export default function Layout() {
