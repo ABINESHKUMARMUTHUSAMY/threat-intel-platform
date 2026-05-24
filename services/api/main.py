@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from db import get_pool, close_pool
-from routes import alerts, flows, assets, blocklist, yara, incidents, health
+from routes import alerts, flows, assets, blocklist, incidents, health, playbook_runs, topology
 
 
 @asynccontextmanager
@@ -34,13 +34,9 @@ app.include_router(alerts.router, prefix="/alerts", tags=["alerts"])
 app.include_router(incidents.router, prefix="/incidents", tags=["incidents"])
 app.include_router(assets.router, prefix="/assets", tags=["assets"])
 app.include_router(blocklist.router, prefix="/blocklist", tags=["blocklist"])
-app.include_router(yara.router, prefix="/rules/yara", tags=["yara"])
+app.include_router(playbook_runs.router, prefix="/playbook-runs", tags=["playbook-runs"])
+app.include_router(topology.router, prefix="/topology", tags=["topology"])
 
-from routes.blocklist import router as blocklist_router
-from routes.playbook_runs import router as playbook_runs_router
-
-app.include_router(blocklist_router, prefix="/blocklist", tags=["blocklist"])
-app.include_router(playbook_runs_router, prefix="/playbook-runs", tags=["playbook-runs"])
 
 @app.get("/")
 async def root():
