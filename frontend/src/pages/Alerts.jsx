@@ -19,6 +19,7 @@ function fetchAlerts(filters) {
   params.set('limit', '100')
   if (filters.severity) params.set('severity', filters.severity)
   if (filters.attack_type) params.set('attack_type', filters.attack_type)
+  if (filters.detection_source) params.set('detection_source', filters.detection_source) 
   if (filters.since_minutes) params.set('since_minutes', filters.since_minutes)
   return api.get(`/alerts?${params}`).then(r => r.data)
 }
@@ -28,7 +29,7 @@ function fetchStats(sinceMinutes) {
 }
 
 export default function Alerts() {
-  const [filters, setFilters] = useState({ severity: '', attack_type: '', since_minutes: 60 })
+  const [filters, setFilters] = useState({ severity: '', attack_type: '', detection_source: '', since_minutes: 60 })
   const [selectedAlertId, setSelectedAlertId] = useState(null)
 
   const { data: alerts, isLoading, isError } = useQuery({
@@ -71,6 +72,7 @@ export default function Alerts() {
               <tr>
                 <Th>Time</Th>
                 <Th>Severity</Th>
+                <Th>Source</Th>
                 <Th>Attack type</Th>
                 <Th>Source IP</Th>
                 <Th>Destination</Th>
@@ -87,7 +89,8 @@ export default function Alerts() {
                 >
                   <Td>{new Date(a.timestamp).toLocaleTimeString()}</Td>
                   <Td><SeverityBadge severity={a.severity} /></Td>
-                  <Td className="font-medium">{a.attack_type}</Td>
+                  <Td><DetectionSourceBadge source={a.detection_source} /></Td>
+          <Td className="font-medium">{a.attack_type}</Td>
                   <Td className="font-mono text-xs">{a.src_ip}</Td>
                   <Td className="font-mono text-xs">{a.dst_ip}</Td>
                   <Td align="right" className="font-mono text-xs">
@@ -114,6 +117,25 @@ export default function Alerts() {
   )
 }
 
+function DetectionSourceBadge({ source }) {
+  const styles = {
+    ml: 'bg-blue-100 text-blue-800 ring-blue-200',
+    suricata: 'bg-amber-100 text-amber-800 ring-amber-200',
+    manual: 'bg-slate-100 text-slate-700 ring-slate-200',
+  }
+  const labels = {
+    ml: 'ML',
+    suricata: 'SURICATA',
+    manual: 'MANUAL',
+  }
+  const style = styles[source] || styles.manual
+  const label = labels[source] || (source ? source.toUpperCase() : '—')
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${style}`}>
+      {label}
+    </span>
+  )
+}
 function StatsBar({ stats }) {
   return (
     <div className="grid grid-cols-4 gap-3 mb-5">
@@ -157,6 +179,16 @@ function FilterBar({ filters, setFilters }) {
         value={filters.attack_type}
         onChange={(v) => setFilters({ ...filters, attack_type: v })}
         options={ATTACK_TYPES.map(s => ({ value: s, label: s || 'All' }))}
+      />
+      <Select
+    label="Detection Source"
+      value={filters.detection_source}
+      onChange={(v) => setFilters({ ...filters, detection_source: v })}
+        options={[
+          { value: '', label: 'All sources' },
+          { value: 'ml', label: 'ML' },
+          { value: 'suricata', label: 'Suricata' },
+        ]}
       />
       <Select
         label="Time range"
