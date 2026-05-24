@@ -1,0 +1,73 @@
+# Custom rules for the threat-intel-platform
+# All rule SIDs in the 9000000-9999999 range to avoid collision with ET Open
+
+#-----------------------------------------------------------------------
+# Port scans — detect rapid SYN to multiple ports from a single source
+#-----------------------------------------------------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"THREAT-INTEL TCP SYN port scan (>20 ports in 60s)"; \
+    flow:stateless; flags:S,12; \
+    threshold:type both,track by_src,count 20,seconds 60; \
+    classtype:network-scan; \
+    sid:9000001; rev:1;)
+
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"THREAT-INTEL TCP SYN port scan (lateral, >20 ports in 60s)"; \
+    flow:stateless; flags:S,12; \
+    threshold:type both,track by_src,count 20,seconds 60; \
+    classtype:network-scan; \
+    sid:9000002; rev:1;)
+
+#-----------------------------------------------------------------------
+# SYN flood DoS — detect very high rate of SYN to a single host
+#-----------------------------------------------------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"THREAT-INTEL TCP SYN flood (>100 SYN/s to single host)"; \
+    flow:stateless; flags:S,12; \
+    threshold:type both,track by_dst,count 100,seconds 1; \
+    classtype:attempted-dos; \
+    sid:9000010; rev:1;)
+
+alert tcp $HOME_NET any -> $HOME_NET any (msg:"THREAT-INTEL TCP SYN flood (lateral, >100 SYN/s)"; \
+    flow:stateless; flags:S,12; \
+    threshold:type both,track by_dst,count 100,seconds 1; \
+    classtype:attempted-dos; \
+    sid:9000011; rev:1;)
+
+#-----------------------------------------------------------------------
+# HTTP brute force — detect many auth attempts in short window
+# THIS IS THE ONE THAT CATCHES wfuzz (and all other HTTP brute force tools)
+#-----------------------------------------------------------------------
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"THREAT-INTEL HTTP basic auth brute force"; \
+    flow:to_server,established; \
+    http.header; content:"Authorization|3a 20|Basic"; \
+    threshold:type both,track by_src,count 10,seconds 60; \
+    classtype:attempted-recon; \
+    sid:9000020; rev:1;)
+
+alert http $HOME_NET any -> $HOME_NET any (msg:"THREAT-INTEL HTTP basic auth brute force (lateral)"; \
+    flow:to_server,established; \
+    http.header; content:"Authorization|3a 20|Basic"; \
+    threshold:type both,track by_src,count 10,seconds 60; \
+    classtype:attempted-recon; \
+    sid:9000021; rev:1;)
+
+#-----------------------------------------------------------------------
+# SSH brute force — multiple connection attempts to port 22
+#-----------------------------------------------------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"THREAT-INTEL SSH connection rate exceeded (>10/min)"; \
+    flow:to_server,established; \
+    threshold:type both,track by_src,count 10,seconds 60; \
+    classtype:attempted-user; \
+    sid:9000030; rev:1;)
+
+#-----------------------------------------------------------------------
+# Slow HTTP DoS — many concurrent half-open HTTP connections
+#-----------------------------------------------------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET [80,8000,8080] (msg:"THREAT-INTEL slow HTTP DoS — many concurrent connections from single source"; \
+    flow:to_server; flags:S,12; \
+    threshold:type both,track by_src,count 30,seconds 5; \
+    classtype:attempted-dos; \
+    sid:9000040; rev:1;)

@@ -35,6 +35,32 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy 
+  suricata-reader:
+    build:
+      context: ../services/suricata-reader
+      dockerfile: Dockerfile
+    container_name: threat-intel-suricata-reader
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EVE_PATH: /host-log/suricata/eve.json
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      STREAM_NAME: alerts:new
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-threat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-threat_intel}
+      POLL_INTERVAL_S: "1.0"
+      LOG_LEVEL: INFO
+    volumes:
+      - /var/log/suricata:/host-log/suricata:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   detection:
     build:

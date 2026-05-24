@@ -486,3 +486,119 @@ python3 measure_adversarial.py --output adversarial_results.csv
 ```
 
 Raw results: `scripts/adversarial/adversarial_results.csv`.
+
+## Appendix D — Dual-Detector Comparison (ML + Suricata)
+
+### Motivation
+
+Appendix C demonstrated a measured robustness gap in the ML detector: the
+behavioral XGBoost classifier completely failed to detect HTTP brute force
+performed with `wfuzz` (0/5 detections), despite catching the same attack
+class via `hydra` at 5/5. This motivated the addition of a signature-based
+detection layer to complement the ML detector.
+
+### Architecture
+
+Suricata 6.0 was added as a parallel detection layer on the same `ens5`
+interface as the Scapy capture service. Suricata fires alerts via custom
+rules in `/var/lib/suricata/rules/threat-intel-custom.rules` (sids 9000001
+through 9000040). A reader service (`services/suricata-reader/`) tails
+`/var/log/suricata/eve.json`, parses alert events, normalizes them to the
+existing `alerts` schema (with `detection_source = 'suricata'`), inserts to
+Postgres, and publishes to the same `alerts:new` Redis stream consumed by
+the response engine.
+
+The response engine treats Suricata alerts identically to ML alerts: same
+playbook execution, same operator-allowlist safeguard, same idempotency
+checks. The detector source is metadata, not behavior.
+
+### Custom Suricata Rules
+
+| SID     | Class       | Detection criterion |
+|---------|-------------|---------------------|
+| 9000001, 9000002 | PortScan   | TCP SYN scan: >20 distinct destination ports from one source within 60 seconds |
+| 9000010, 9000011 | DoS        | TCP SYN flood: >100 SYN/sec to a single destination host |
+| 9000020, 9000021 | Bruteforce | HTTP `Authorization: Basic` header observed >10 times from one source within 60 seconds |
+| 9000030 | Bruteforce | SSH connections to port 22 >10 times from one source within 60 seconds |
+| 9000040 | DoS        | HTTP slow DoS: >30 concurrent half-open connections to ports 80/8000/8080 |
+
+Each attack class has both an `$EXTERNAL_NET → $HOME_NET` rule and a
+`$HOME_NET → $HOME_NET` rule (lateral variant), since the attacker and
+sensor are both within the lab VPC.
+
+### Comparison Methodology
+
+A test window was created with detection deduplication temporarily reduced
+to 1 minute, response engine paused (to prevent containment from interrupting
+subsequent attacks), and blocklist + iptables cleared. The same six attack
+variants from Appendix C were issued from the attacker (`10.20.7.205`) against
+the sensor (`10.20.9.39`). Suricata's eve.json output and the alerts table
+were monitored for detections from each detector independently.
+
+### Results
+
+| Attack class       | Tool used    | ML detected? | ML confidence (when fired) | Suricata detected? |
+|--------------------|--------------|--------------|----------------------------|--------------------|
+| PortScan           | nmap         | Yes          | 0.60                       | Yes                |
+| PortScan           | masscan      | (covered in Appx C) | 0.60 avg            | Yes (via sid 9000002) |
+| DoS                | hping3 100pps | (covered in Appx C) | 0.997 avg          | Yes (via sid 9000011) |
+| DoS                | hping3 1000pps| (covered in Appx C) | 0.996 avg          | Yes (via sid 9000011) |
+| Bruteforce         | hydra        | Yes          | 0.81                       | Yes (via sid 9000021) |
+| **Bruteforce**     | **wfuzz**    | **No**       | **n/a — 0/5 in Appx C**    | **Yes (via sid 9000021)** |
+
+The wfuzz row is the central finding of this appendix. Suricata's HTTP brute
+force rule matches the presence and frequency of `Authorization: Basic`
+headers in the request stream, independent of what tool generated those
+requests. ML, in contrast, learned the specific flow-distribution
+characteristics of hydra (parallelism, inter-arrival timing, request count
+per flow window) and could not generalize across tool variants.
+
+### Detection Coverage Analysis
+
+The dual-detector architecture provides complementary coverage:
+
+- **ML catches behavioral anomalies that signatures may miss**: novel attack
+  patterns, polymorphic flow shapes, deviations from learned baselines. The
+  AnomalyUnknown class (Isolation Forest only, no XGBoost classification)
+  captures "something is wrong but I can't name it" cases — useful as an
+  unknown-unknown alert source even when classification fails.
+
+- **Signatures catch known attack structures invariant to tooling**: as
+  demonstrated by wfuzz vs hydra, signatures that match protocol structure
+  rather than flow distribution generalize across attack tools naturally.
+
+- **Corroboration when both fire**: alerts where both ML and Suricata
+  independently fire for the same `(src_ip, attack_type)` are high-confidence
+  detections — two independent classifiers agreed.
+
+### Honest Limitations
+
+**Signature maintenance cost.** Suricata rules require manual upkeep — a new
+attack class (say, DNS exfiltration) requires writing a new rule. The eight
+custom rules in this project cover the four attack classes the platform was
+designed for, but production deployments would need additional rules for
+real threats and would typically also load community rule sets such as
+Emerging Threats Open.
+
+**Both detectors are vulnerable to encrypted traffic.** Suricata's
+HTTP-based rules cannot inspect HTTPS payloads without TLS interception.
+The brute force rule (sid 9000021) would not fire against an HTTPS basic
+auth endpoint. ML similarly loses signal when payload content is encrypted,
+though flow-level features (connection rates, durations, sizes) still
+provide some detection capability.
+
+**Suricata fires more alerts.** Within the test window, Suricata generated
+multiple alerts per attack (one per threshold-resetting window), while ML
+fires per flow batch. Operational deployments would need alert aggregation
+to avoid analyst fatigue. The response engine's idempotency check (skip if
+IP already blocked) provides this aggregation for the response phase but
+does not reduce the alert visibility burden in the dashboard.
+
+### Reproducibility
+
+Suricata rules: `/var/lib/suricata/rules/threat-intel-custom.rules` (in the
+repo at `infra/suricata/threat-intel-custom.rules` for version control).
+Reader service: `services/suricata-reader/reader.py`. The full pipeline
+runs by default in `docker compose up -d` after Suricata is installed
+natively on the sensor (`sudo apt install suricata && sudo systemctl
+enable --now suricata`).

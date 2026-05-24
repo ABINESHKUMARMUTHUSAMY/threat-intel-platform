@@ -12,6 +12,8 @@ async def list_alerts(
     severity: str | None = Query(None, regex="^(low|medium|high|critical)$"),
     attack_type: str | None = None,
     since_minutes: int | None = Query(None, ge=1, le=10080),
+    detection_source: str | None = Query(None, regex="^(ml|suricata|manual)$"), 
+
 ):
     """List alerts with optional filtering."""
     pool = await get_pool()
@@ -27,7 +29,9 @@ async def list_alerts(
         if since_minutes is not None:
             params.append(timedelta(minutes=since_minutes))
             clauses.append(f"timestamp > NOW() - ${len(params)}::interval")
-
+        if detection_source:
+            params.append(detection_source)
+            clauses.append(f"detection_source = ${len(params)}")
         where = "WHERE " + " AND ".join(clauses) if clauses else ""
         total = await conn.fetchval(f"SELECT COUNT(*) FROM alerts {where}", *params)
 
@@ -39,7 +43,8 @@ async def list_alerts(
                 severity, attack_type,
                 confidence::float,
                 src_ip::text, dst_ip::text,
-                description, status
+                description, status,
+        	detection_source
             FROM alerts
             {where}
             ORDER BY timestamp DESC
@@ -74,7 +79,8 @@ async def get_alert(alert_id: str):
                 severity, attack_type,
                 confidence::float,
                 src_ip::text, dst_ip::text,
-                description, status, raw_features
+                description, status, raw_features,
+        	detection_source
             FROM alerts
             WHERE id = $1::uuid
             """,
@@ -91,6 +97,7 @@ async def get_alert(alert_id: str):
         # asyncpg returns JSONB as a string; parse it before returning
         if isinstance(d.get("raw_features"), str):
             d["raw_features"] = json.loads(d["raw_features"])
+
         return d
 
 
