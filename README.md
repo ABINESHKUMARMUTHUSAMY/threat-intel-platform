@@ -34,7 +34,7 @@ _Coming Day 7 — see [docs/eval-report.md](docs/eval-report.md)_
 - [x] **Day 3** — ML detection: dual-model pipeline ([eval report](docs/eval-report.md), [v0.3-day3-detection](../../releases/tag/v0.3-day3-detection))
 - [x] **Day 4** — Automated response: idempotent playbook engine, IP blocklist (iptables + TTL + expiry worker), host isolation (AWS SG swap via boto3), MTTC measured at 99.97% median reduction ([Appendix B](docs/eval-report.md#appendix-b--mean-time-to-contain-mttc-measurement), [v0.4-day4-response](../../releases/tag/v0.4-day4-response))
 - [x] **Day 5** — Adversarial robustness test ([Appendix C](docs/eval-report.md#appendix-c--adversarial-robustness-measurement)) revealed model brittleness to attack tooling (wfuzz: 0/5 detection). Added Suricata signature-based detection as complementary layer ([Appendix D](docs/eval-report.md#appendix-d--dual-detector-comparison-ml--suricata), [v0.5-day5-suricata](../../releases/tag/v0.5-day5-suricata))
-- [ ] Day 6 — Topology mapper, dashboard, polish
+- [x] Day 6 — Topology mapper, dashboard, polish
 - [ ] Day 7 — Validation, demo video, final docs
 
 ## License
