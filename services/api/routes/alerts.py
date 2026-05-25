@@ -147,3 +147,112 @@ async def alert_stats(since_minutes: int = Query(60, ge=1, le=10080)):
         "by_attack_type": [dict(r) for r in by_attack],
         "by_severity": [dict(r) for r in by_severity],
     }
+@router.get("/stats/timeseries")
+async def alert_timeseries(
+    since_minutes: int = Query(60, ge=1, le=10080),
+    bucket_minutes: int = Query(1, ge=1, le=1440, description="Time bucket size in minutes"),
+    exclude_operator_ip: str | None = Query(None, description="src_ip to exclude (e.g. operator's laptop)"),
+):
+    """Alert counts bucketed over time, separated by detection_source."""
+    pool = await get_pool()
+    from datetime import timedelta
+    interval = timedelta(minutes=since_minutes)
+    bucket = timedelta(minutes=bucket_minutes)
+
+    extra_filter = ""
+    params = [interval, bucket]
+    if exclude_operator_ip:
+        params.append(exclude_operator_ip)
+        extra_filter = f" AND src_ip != ${len(params)}::inet"
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            WITH all_buckets AS (
+                SELECT generate_series(
+                    time_bucket($2::interval, NOW() - $1::interval),
+                    time_bucket($2::interval, NOW()),
+                    $2::interval
+                ) AS bucket
+            ),
+            alert_counts AS (
+                SELECT
+                    time_bucket($2::interval, timestamp) AS bucket,
+                    detection_source,
+                    COUNT(*) AS count
+                FROM alerts
+                WHERE timestamp > NOW() - $1::interval
+                  {extra_filter}
+                GROUP BY bucket, detection_source
+            )
+            SELECT
+                ab.bucket,
+                ac.detection_source,
+                COALESCE(ac.count, 0) AS count
+            FROM all_buckets ab
+            LEFT JOIN alert_counts ac ON ab.bucket = ac.bucket
+            ORDER BY ab.bucket ASC
+            """,
+            *params,
+        )
+
+    # Pivot to: [{bucket, ml, suricata}] for easier frontend consumption
+    by_bucket = {}
+    for r in rows:
+        b = r["bucket"].isoformat()
+        if b not in by_bucket:
+            by_bucket[b] = {"bucket": b, "ml": 0, "suricata": 0, "total": 0}
+        if r["detection_source"] is None:
+            continue
+        by_bucket[b][r["detection_source"]] = r["count"]
+        by_bucket[b]["total"] += r["count"]
+
+    return {
+        "since_minutes": since_minutes,
+        "bucket_minutes": bucket_minutes,
+        "series": list(by_bucket.values()),
+    }
+@router.get("/stats/top-talkers")
+async def alert_top_talkers(
+    since_minutes: int = Query(1440, ge=1, le=10080),
+    limit: int = Query(10, ge=1, le=50),
+    exclude_operator_ip: str | None = Query(None),
+):
+    """Top source IPs by alert count over the window."""
+    pool = await get_pool()
+    from datetime import timedelta
+    interval = timedelta(minutes=since_minutes)
+
+    extra_filter = ""
+    params = [interval, limit]
+    if exclude_operator_ip:
+        params.append(exclude_operator_ip)
+        extra_filter = f" AND src_ip != ${len(params)}::inet"
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            SELECT
+                src_ip::text AS src_ip,
+                COUNT(*) AS alert_count,
+                COUNT(*) FILTER (WHERE severity = 'high' OR severity = 'critical') AS high_severity,
+                MAX(timestamp) AS last_seen,
+                ARRAY_AGG(DISTINCT attack_type ORDER BY attack_type) AS attack_types
+            FROM alerts
+            WHERE timestamp > NOW() - $1::interval
+              {extra_filter}
+            GROUP BY src_ip
+            ORDER BY alert_count DESC
+            LIMIT $2
+            """,
+            *params,
+        )
+
+    items = []
+    for r in rows:
+        d = dict(r)
+        d["src_ip"] = d["src_ip"].split("/")[0]
+        d["last_seen"] = d["last_seen"].isoformat() if d["last_seen"] else None
+        d["attack_types"] = list(d["attack_types"]) if d["attack_types"] else []
+        items.append(d)
+    return {"since_minutes": since_minutes, "items": items}

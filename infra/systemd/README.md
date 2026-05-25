@@ -2,7 +2,8 @@
 
 ## threat-intel-pcap-buffer.service
 
-Rolling tcpdump capture for Day 5 YARA payload extraction.
+Rolling tcpdump capture buffer for incident response — preserves recent
+traffic for forensic analysis when alerts fire.
 
 Captures 60-second pcap files, retains the 5 most recent (5 min sliding window).
 Filters out management ports (SSH, Postgres, Redis, FastAPI, Vite) to avoid

@@ -8,7 +8,6 @@ const navItems = [
   { to: '/flows', label: 'Flows', icon: Network },
   { to: '/topology', label: 'Topology', icon: ShieldCheck },
   { to: '/blocklist', label: 'Blocklist', icon: Ban },
-  { to: '/yara', label: 'YARA Rules', icon: FileCode },
   { to: '/playbook-runs', label: 'Playbook runs', icon: Play },
 ]
 

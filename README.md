@@ -1,6 +1,6 @@
 # Network Threat Intelligence & Automated Response Platform
 
-Real-time network threat monitoring with ML-based anomaly detection (XGBoost on CICIDS2017), automated incident response (host isolation, IP blocking, YARA rule generation), and topology mapping for unauthorized device detection.
+Real-time network threat monitoring with dual-detector pipeline (XGBoost behavioral classifier + Suricata signature-based IDS), automated incident response (host isolation via AWS Security Group swap, IP blocklisting via iptables with TTL), and passive topology mapping for attack pattern visualization.
 
 **Status:** 🚧 In active development (Day 1 of 7)
 
